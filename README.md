@@ -1,10 +1,6 @@
 # Multi-Controller-v2
 DIY Universal remote controller for multiple usage with implemented  serial communication protocol. [version 2]]
 
-
-# Multi Controller 2
-Programmable wireless controller for various applications
-
 ## Introduction
 This device was constructed for Lake floor mapping project, but can be modified to another else use.
 
