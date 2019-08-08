@@ -101,8 +101,8 @@ Joystick::Joystick(const uint8_t xpin, const uint8_t ypin, const uint8_t swpin):
 axe_t Joystick::readAxeControlData() {
         axe_t control_axe;
         read();
-        control_axe.x = m_axe.y - m_axe.x + Inputs::JoystickMiddleX;
-        control_axe.y = m_axe.y + m_axe.x - Inputs::JoystickMiddleX;
+        control_axe.y = m_axe.y - m_axe.x + Inputs::JoystickMiddleX;
+        control_axe.x = m_axe.y + m_axe.x - Inputs::JoystickMiddleX;
         
         control_axe.x = clamp(control_axe.x, 0, 1023);
         control_axe.y = clamp(control_axe.y, 0, 1023);

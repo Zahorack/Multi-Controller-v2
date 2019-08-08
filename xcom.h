@@ -6,18 +6,22 @@
 #include "xinputs.h"
 
 
+//typedef struct {
+//        uint16_t start_mark;
+//        uint32_t id;
+//        uint16_t data_len;
+//        uint8_t  type;
+//        uint8_t  data_crc;
+////        uint8_t  *data;
+//} __attribute__((packed)) packetHeader_t;
+
 typedef struct {
-        uint16_t start_mark;
-        uint16_t sequencer;
-        uint16_t data_len;
+        uint32_t id;
         uint8_t  type;
-        uint8_t  data_crc;
-//        uint8_t  *data;
 } __attribute__((packed)) packetHeader_t;
 
 typedef struct {
         axe_t joystickData;
-        
 } __attribute__((packed)) controlData_t;
 
 typedef struct {
@@ -27,14 +31,10 @@ typedef struct {
 
 namespace PacketType {
 enum packet_type : uint8_t {
-        Status = 0,
-        Nack,
+        Nack = 0,
         Ack,
-        Error,
-        ControlData,
-        OpenLeftBox,
-        OpenRightBox,
-        SystemReset,
+        Status,
+        ControlData
 };
 }
 

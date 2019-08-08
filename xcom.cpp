@@ -2,7 +2,7 @@
 #include "xhmi.h"
 
 
-static const uint16_t ControlSendingPeriod = 100;
+static const uint16_t ControlSendingPeriod = 200;
 
 static const uint8_t crc8_Table[ ] = {
         0,  94, 188, 226,  97,  63, 221, 131, 194, 156, 126,  32, 163, 253,  31,  65,
@@ -51,26 +51,30 @@ void Communication::sendControlData() {
         data.joystickData = hmi.m_joystick->readAxeControlData();
         
         packetHeader_t header;
-        header.start_mark = PacketMark;
-        header.sequencer = m_packetIndex++;
-        header.data_len = sizeof(controlData_t);
+        
+        header.id = m_packetIndex++;
         header.type = PacketType::ControlData;
-        header.data_crc = calc_crc8((uint8_t *)&data, sizeof(controlData_t));
+        
+        uint8_t header_crc = calc_crc8((uint8_t *)&header, sizeof(packetHeader_t));
+        uint8_t data_crc = calc_crc8((uint8_t *)&data, sizeof(controlData_t));
 
+        m_rf->write((uint8_t *)&PacketMark,sizeof(PacketMark));
         m_rf->write((uint8_t *)&header, sizeof(packetHeader_t));
+        m_rf->write((uint8_t *)&header_crc, sizeof(header_crc));
         m_rf->write((uint8_t *)&data, sizeof(controlData_t));
+        m_rf->write((uint8_t *)&data_crc, sizeof(data_crc));
 }
 
 
 void Communication::send(uint8_t packet_type) {
         
-        packetHeader_t header;
-        
-        header.start_mark = PacketMark;
-        header.sequencer = m_packetIndex++;
-        header.data_len = 0;
-        header.type = packet_type;
-        header.data_crc = 0;
-
-        m_rf->write((uint8_t *)&header, sizeof(packetHeader_t));
+//        packetHeader_t header;
+//        
+//        header.start_mark = PacketMark;
+//        header.sequencer = m_packetIndex++;
+//        header.data_len = 0;
+//        header.type = packet_type;
+//        header.data_crc = 0;
+//
+//        m_rf->write((uint8_t *)&header, sizeof(packetHeader_t));
 }
