@@ -41,8 +41,6 @@ uint8_t Menu::select() {
         static bool last_button_state = LOW;
 
         counter = hmi.m_encoder->read();
-        Serial.print(hmi.m_encoder->read());
-        Serial.print("  ");
         m_choice = counter + last_counter;
 
         if(m_choice >= m_size) {
@@ -50,16 +48,11 @@ uint8_t Menu::select() {
                 hmi.m_encoder->reset();
                 last_counter = 0;
         }
-
         if(m_choice < 0) {
                 m_choice = m_size-1;
                 last_counter = m_size-1;
                 hmi.m_encoder->reset();
         }
-
-
-
-        Serial.println(m_choice);
 
         if (last_choice != m_choice ||start_condition == true) {
                 start_condition = false;

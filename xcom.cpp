@@ -43,9 +43,9 @@ void Communication::update()
                 last_control_time = millis();
         }
 
-       if(m_rf->available()) {
-                Serial.println(m_rf->read());
-        }
+//       if(m_rf->available()) {
+//                Serial.println(m_rf->read());
+//        }
 
 }
 

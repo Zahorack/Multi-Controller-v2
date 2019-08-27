@@ -169,9 +169,9 @@ void loop()
 }
 
 /*--------------------Functions declaration--------------------------*/
-
-static uint8_t receive()
-{
+//
+//static uint8_t receive()
+//{
 //        uint16_t mark;
 //        packetHeader_t header;
 //        uint8_t *data;
@@ -180,7 +180,8 @@ static uint8_t receive()
 //                rf.readBytes((uint8_t*)&mark, 2);
 //                
 //                if(mark = com.getPacketMark()) {
-//                        rf.readBytes((uint8_t*)&header+sizeof(com.getPacketMark()), sizeof(packetHeader_t)-sizeof(com.getPacketMark()));
+//                        Serial.println("Mark OK");
+//                        rf.readBytes((uint8_t*)&header), sizeof(packetHeader_t));
 //                        
 //                        if(header.data_len > 0) {
 //                                data = malloc(header.data_len * sizeof(uint8_t));
@@ -203,4 +204,4 @@ static uint8_t receive()
 //                        } //PACKET WITHOUT DATA
 //                } //PACKET MARK NOT FOUND
 //        } //NOTHING TO READ
-}
+//}
