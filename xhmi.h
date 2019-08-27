@@ -58,8 +58,10 @@ extern Hmi hmi;
 class Menu {
         String *m_list;
         const uint8_t m_size;
-        uint8_t m_choice;
+        int8_t m_choice;
         uint8_t m_state;
+
+        uint8_t start_condition = true;
         
 public:
         Menu(String *data, uint8_t size);
@@ -67,6 +69,7 @@ public:
         uint8_t getChoice();
         uint8_t select();
         void show();  
+        void begin();
 };
 
 //::Windows------------------------------------------------------------------------------

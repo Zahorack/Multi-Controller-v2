@@ -35,19 +35,34 @@ Menu::Menu(String *data, uint8_t size):
 
 uint8_t Menu::select() {
         
-        static uint8_t last_choice = 0;
-        static int32_t last_counter = hmi.m_encoder->read();
+        static int8_t last_choice = 0;
         static int32_t counter = 0;
+        static int32_t last_counter = 0;
+        static bool last_button_state = LOW;
 
         counter = hmi.m_encoder->read();
-        m_choice =+ counter - last_counter;
+        Serial.print(hmi.m_encoder->read());
+        Serial.print("  ");
+        m_choice = counter + last_counter;
 
         if(m_choice >= m_size) {
                 m_choice = 0;
                 hmi.m_encoder->reset();
+                last_counter = 0;
         }
 
-        if ( last_choice != m_choice) {
+        if(m_choice < 0) {
+                m_choice = m_size-1;
+                last_counter = m_size-1;
+                hmi.m_encoder->reset();
+        }
+
+
+
+        Serial.println(m_choice);
+
+        if (last_choice != m_choice ||start_condition == true) {
+                start_condition = false;
                 hmi.m_lcd->firstPage();
                 do  {
                         show();
@@ -55,12 +70,20 @@ uint8_t Menu::select() {
                 last_choice = m_choice;  
         }
 
-        if(hmi.m_encoder->m_button.read()) {
+        if(hmi.m_encoder->m_button.read() && last_button_state == LOW) {
+                last_button_state = HIGH;
                 return MenuList::State::Done;
         }
-        else {
+        else if(!hmi.m_encoder->m_button.read()) {
+                last_button_state = LOW;
                 return MenuList::State::Busy;
-        }           
+        }       
+
+        return MenuList::State::Busy;
+}
+
+void Menu::begin() {
+        start_condition = true;
 }
 
  void Menu::show() {

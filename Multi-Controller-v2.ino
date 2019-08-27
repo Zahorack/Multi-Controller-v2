@@ -81,8 +81,23 @@ static void encoder_handler() {
 }
 
 String mainMenuString[5] = {"Home", "Manual control", "Sonar", "Chart", "Settings"};
-
 Menu mainMenu(mainMenuString, 5);
+
+String manualControlMenuString[4] = {"Left feeder", "Right Feeder", "Settings", "Back"};
+Menu manualControlMenu(manualControlMenuString, 4);
+
+
+namespace Menus {
+enum {
+        Main = 0,
+        Manual,
+        
+        Size
+};
+}
+uint8_t menu_index = Menus::Main;
+
+
 HomeWindow home;
 
 void setup() {
@@ -110,14 +125,24 @@ void loop()
 
         com.update();
 
-//        if(rf.available()) {
-//                Serial.println(rf.read());
-//        }
+
         
-        if(mainMenu.select()) {
+        if(menu_index == Menus::Main && mainMenu.select()) {
                switch(mainMenu.getChoice()) {
                         case 0: home.update(); break;
+                        case 1: menu_index = Menus::Manual; manualControlMenu.begin(); break; 
+                        
+                        default: break;
                }
+        }
+        else if(menu_index == Menus::Manual && manualControlMenu.select()) {
+                 switch(manualControlMenu.getChoice()) {
+                        case 0: com.openLeftFeeder(); Serial.println("OpenLeft Feeder"); break;
+                        case 1: com.openRightFeeder(); Serial.println("OpenRight Feeder"); break;
+                        case 3: menu_index = Menus::Main; mainMenu.begin(); break;
+
+                        default: break;
+                 }
         }
 
         

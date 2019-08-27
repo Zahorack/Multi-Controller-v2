@@ -34,7 +34,9 @@ enum packet_type : uint8_t {
         Nack = 0,
         Ack,
         Status,
-        ControlData
+        ControlData,
+        OpenLeftFeeder,
+        OpenRightFeeder
 };
 }
 
@@ -58,7 +60,10 @@ public:
         
         void send(uint8_t packet_type);
         void update();
+        
         void sendControlData();
+        void openLeftFeeder();
+        void openRightFeeder();
         
         uint8_t calc_crc8(uint8_t  * data, uint16_t len);
         

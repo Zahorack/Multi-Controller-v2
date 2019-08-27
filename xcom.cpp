@@ -43,6 +43,10 @@ void Communication::update()
                 last_control_time = millis();
         }
 
+       if(m_rf->available()) {
+                Serial.println(m_rf->read());
+        }
+
 }
 
 void Communication::sendControlData() {
@@ -65,6 +69,29 @@ void Communication::sendControlData() {
         m_rf->write((uint8_t *)&data_crc, sizeof(data_crc));
 }
 
+void Communication::openLeftFeeder() {
+        packetHeader_t header;
+        
+        header.id = m_packetIndex++;
+        header.type = PacketType::OpenLeftFeeder;
+
+        uint8_t header_crc = calc_crc8((uint8_t *)&header, sizeof(packetHeader_t));
+        m_rf->write((uint8_t *)&PacketMark,sizeof(PacketMark));
+        m_rf->write((uint8_t *)&header, sizeof(packetHeader_t));
+        m_rf->write((uint8_t *)&header_crc, sizeof(header_crc));
+}
+
+void Communication::openRightFeeder() {
+        packetHeader_t header;
+        
+        header.id = m_packetIndex++;
+        header.type = PacketType::OpenRightFeeder;
+
+        uint8_t header_crc = calc_crc8((uint8_t *)&header, sizeof(packetHeader_t));
+        m_rf->write((uint8_t *)&PacketMark,sizeof(PacketMark));
+        m_rf->write((uint8_t *)&header, sizeof(packetHeader_t));
+        m_rf->write((uint8_t *)&header_crc, sizeof(header_crc));
+}
 
 void Communication::send(uint8_t packet_type) {
         
