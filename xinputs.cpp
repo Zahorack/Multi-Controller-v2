@@ -23,6 +23,7 @@ bool Button::getState() {
         return m_state; 
 }
 
+
 bool Button::getLastState() { 
         return m_lastState; 
 }
@@ -66,7 +67,7 @@ void RotaryEncoder::clkHandler() {
                 else {
                         m_counter--;
                 }
-                Serial.println(m_counter);
+               // Serial.println(m_counter);
         }
         clk_last_state = clk_state;        
 }

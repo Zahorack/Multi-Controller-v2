@@ -105,6 +105,7 @@ void Menu::begin() {
         }
 }  
 
+
 uint8_t Menu::getChoice() {
         return m_choice;
 }

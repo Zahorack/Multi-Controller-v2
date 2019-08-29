@@ -12,7 +12,6 @@ typedef struct {
 namespace Inputs {
         const uint16_t JoystickMiddleX = 498;
         const uint16_t JoystickMiddleY = 507;    
-
         const uint16_t JoystickOffset = 20; 
 }
 

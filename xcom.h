@@ -1,77 +1,78 @@
-#ifndef XCOM_H_
-#define XCOM_H_
+/*
+ * Comunication.h
+ *
+ *  Created on: 2.9. 2018
+ *      Author: Zahorack
+ */
 
-#include <Arduino.h>
+#ifndef UTIL_COMMUNICATION_H_
+#define UTIL_COMMUNICATION_H_
+
+#include "xpacket.h"
+#include "Arduino.h"
 #include <SoftwareSerial.h>
-#include "xinputs.h"
 
+namespace Container
+{
+        template<typename T>
+        struct Result {
+                explicit constexpr Result() : isValid(false) {}
+                explicit constexpr Result(const T &value) : isValid(true), value(value) {}
 
-//typedef struct {
-//        uint16_t start_mark;
-//        uint32_t id;
-//        uint16_t data_len;
-//        uint8_t  type;
-//        uint8_t  data_crc;
-////        uint8_t  *data;
-//} __attribute__((packed)) packetHeader_t;
-
-typedef struct {
-        uint32_t id;
-        uint8_t  type;
-} __attribute__((packed)) packetHeader_t;
-
-typedef struct {
-        axe_t joystickData;
-} __attribute__((packed)) controlData_t;
-
-typedef struct {
-        uint32_t        uptime;
-        uint16_t        battery_voltage;
-} __attribute__((packed)) statusData_t;
-
-namespace PacketType {
-enum packet_type : uint8_t {
-        Nack = 0,
-        Ack,
-        Status,
-        ControlData,
-        OpenLeftFeeder,
-        OpenRightFeeder
-};
+                bool isValid;
+                T value;
+        };
 }
 
+namespace Control
+{
 
-class Communication {
-        
-        SoftwareSerial *m_rf;
-        uint16_t m_packetIndex;
-        
-        const uint16_t PacketMark = 0x4B4C;
-public:
-        Communication(SoftwareSerial *uart):
-	        m_rf(uart)
-	{
-	        m_rf->begin(57600); 
-	}
+        class Communication {
+                SoftwareSerial *m_rfModule;
+                uint32_t m_transmitID;
+                uint32_t m_receiveID;
 
-        uint16_t getPacketMark() {
-		return PacketMark;
-        }
-        
-        void send(uint8_t packet_type);
-        void update();
-        
-        void sendControlData();
-        void openLeftFeeder();
-        void openRightFeeder();
-        
-        uint8_t calc_crc8(uint8_t  * data, uint16_t len);
-        
-};
+                enum State {
+                        WaitingForNextPacket,
+                        ReadingPacketHeader,
+                        ReadingPacketContents
+                };
 
+                State m_state = WaitingForNextPacket;
+                Packet m_currentPacket;
+                Packet m_transmitPacket;
 
+        public:
+                Communication(SoftwareSerial *uart):
+                        m_rfModule(uart)
+                {
+                        m_rfModule->begin(57600); 
+                }
 
+                Container::Result<Packet> update();
+                void sendStatus();
+                void sendAck();
+                void sendNack();
+                void sendControlData();
+                void send(PacketType::Enum type);
 
+                void send(Packet);
 
+        private:
+                void waitForNextPacket();
+                void readPacketHeader();
+                uint16_t readWord();
+                Container::Result<Packet> readPacketContents();
+                bool checkHeaderCrc();
+                bool checkDataCrc();
 
-#endif
+                template<typename T>
+                void writeStruct(const T &buffer) {
+                        m_rfModule->write(reinterpret_cast<const uint8_t *>(&buffer), sizeof(T));
+                }
+
+                void sendHeader(PacketHeader header);
+                void sendContents(PacketContents content, uint32_t);
+        };
+}
+#endif /* UTIL_PACKET_H_ */

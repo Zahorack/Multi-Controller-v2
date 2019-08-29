@@ -1,107 +1,236 @@
+/*
+ * Comunication.cpp
+ *
+ *  Created on: 2.9. 2018
+ *      Author: Zahorack
+ */
+
 #include "xcom.h"
+#include "extern.h"
 #include "xhmi.h"
 
-
-static const uint16_t ControlSendingPeriod = 200;
-
-static const uint8_t crc8_Table[ ] = {
-        0,  94, 188, 226,  97,  63, 221, 131, 194, 156, 126,  32, 163, 253,  31,  65,
-        157, 195,  33, 127, 252, 162,  64,  30,  95,   1, 227, 189,  62,  96, 130, 220,
-        35, 125, 159, 193,  66,  28, 254, 160, 225, 191,  93,   3, 128, 222,  60,  98,
-        190, 224,   2,  92, 223, 129,  99,  61, 124,  34, 192, 158,  29,  67, 161, 255,
-        70,  24, 250, 164,  39, 121, 155, 197, 132, 218,  56, 102, 229, 187,  89,   7,
-        219, 133, 103,  57, 186, 228,   6,  88,  25,  71, 165, 251, 120,  38, 196, 154,
-        101,  59, 217, 135,   4,  90, 184, 230, 167, 249,  27,  69, 198, 152, 122,  36,
-        248, 166,  68,  26, 153, 199,  37, 123,  58, 100, 134, 216,  91,   5, 231, 185,
-        140, 210,  48, 110, 237, 179,  81,  15,  78,  16, 242, 172,  47, 113, 147, 205,
-        17,  79, 173, 243, 112,  46, 204, 146, 211, 141, 111,  49, 178, 236,  14,  80,
-        175, 241,  19,  77, 206, 144, 114,  44, 109,  51, 209, 143,  12,  82, 176, 238,
-        50, 108, 142, 208,  83,  13, 239, 177, 240, 174,  76,  18, 145, 207,  45, 115,
-        202, 148, 118,  40, 171, 245,  23,  73,   8,  86, 180, 234, 105,  55, 213, 139,
-        87,   9, 235, 181,  54, 104, 138, 212, 149, 203,  41, 119, 244, 170,  72,  22,
-        233, 183,  85,  11, 136, 214,  52, 106,  43, 117, 151, 201,  74,  20, 246, 168,
-        116,  42, 200, 150,  21,  75, 169, 247, 182, 232,  10,  84, 215, 137, 107,  53
-} ;
-
-
-uint8_t Communication::calc_crc8(uint8_t  * data, uint16_t len){
-        uint8_t   crc = 0;
-        uint16_t  n;
-        
-        for(n = 0; n < len; n++){
-                crc = crc8_Table[ crc ^ data[n] ] ;
-        }
-        return crc;
-}
-
-void Communication::update()
+namespace Control
 {
-        /* Control data sending */
-        static uint32_t last_control_time = 0;
-        if(millis() > (last_control_time + ControlSendingPeriod)) {
-                sendControlData();
-                last_control_time = millis();
+        Container::Result<Packet> Communication::update()
+        {
+                static uint32_t last_control_time = 0;
+                if(millis() > (last_control_time + 200)) {
+                        sendControlData();
+                        last_control_time = millis();
+                }
+        
+                //TRACE("rx: %d\n\r", m_rfModule.bytesAvailable());
+                switch(m_state) {
+                        case WaitingForNextPacket:
+                                waitForNextPacket();
+                                break;
+
+                        case ReadingPacketHeader:
+                                readPacketHeader();
+                                break;
+
+                        case ReadingPacketContents:
+                                return readPacketContents();
+                }
+
+                return Container::Result<Packet>();
         }
 
-//       if(m_rf->available()) {
-//                Serial.println(m_rf->read());
-//        }
 
-}
-
-void Communication::sendControlData() {
+        void Communication::waitForNextPacket()
+        {
         
-        controlData_t data;
-        data.joystickData = hmi.m_joystick->readAxeControlData();
-        
-        packetHeader_t header;
-        
-        header.id = m_packetIndex++;
-        header.type = PacketType::ControlData;
-        
-        uint8_t header_crc = calc_crc8((uint8_t *)&header, sizeof(packetHeader_t));
-        uint8_t data_crc = calc_crc8((uint8_t *)&data, sizeof(controlData_t));
+                while(m_rfModule->available() > sizeof(PacketMark)) {
+                        if(readWord() == PacketMark) {
+                                m_state = ReadingPacketHeader;
+                                break;
+                        }
+                }
+        }
 
-        m_rf->write((uint8_t *)&PacketMark,sizeof(PacketMark));
-        m_rf->write((uint8_t *)&header, sizeof(packetHeader_t));
-        m_rf->write((uint8_t *)&header_crc, sizeof(header_crc));
-        m_rf->write((uint8_t *)&data, sizeof(controlData_t));
-        m_rf->write((uint8_t *)&data_crc, sizeof(data_crc));
-}
+        void Communication::readPacketHeader()
+        {
+                if(m_rfModule->available() >= sizeof(PacketHeader) + sizeof(Crc)) {
+                       // m_rfModule->readStruct(m_currentPacket.header);
+                        m_rfModule->readBytes(reinterpret_cast<uint8_t *>(&m_currentPacket.header), sizeof(m_currentPacket.header));
 
-void Communication::openLeftFeeder() {
-        packetHeader_t header;
-        
-        header.id = m_packetIndex++;
-        header.type = PacketType::OpenLeftFeeder;
+                        if(checkHeaderCrc()) {
+                                Serial.print("<-packet type [");
+                                Serial.print(m_currentPacket.header.type);
+                                Serial.println("]");
+                                m_state = ReadingPacketContents;
+                        }
+                        else {
+                                m_state = WaitingForNextPacket;
+                                Serial.print("Header CRC ERROR\n\r");
+                        }
+                }
+        }
 
-        uint8_t header_crc = calc_crc8((uint8_t *)&header, sizeof(packetHeader_t));
-        m_rf->write((uint8_t *)&PacketMark,sizeof(PacketMark));
-        m_rf->write((uint8_t *)&header, sizeof(packetHeader_t));
-        m_rf->write((uint8_t *)&header_crc, sizeof(header_crc));
-}
+        Container::Result<Packet> Communication::readPacketContents()
+        {
+                if(Packet::SizeForType(m_currentPacket.header.type) > 0) {
+                        if(m_rfModule->available() >= Packet::SizeForType(m_currentPacket.header.type) + sizeof(Crc)) {
+                                //m_rfModule.readStruct(m_currentPacket.contents);
+                                m_rfModule->readBytes(reinterpret_cast<uint8_t *>(&m_currentPacket.contents), Packet::SizeForType(m_currentPacket.header.type));
 
-void Communication::openRightFeeder() {
-        packetHeader_t header;
-        
-        header.id = m_packetIndex++;
-        header.type = PacketType::OpenRightFeeder;
+                                if(checkDataCrc()) {
+                                        if(m_currentPacket.header.type != PacketType::ManualControl){
+                                                sendAck();
+                                        }
+                                        m_state = WaitingForNextPacket;
+                                        return Container::Result<Packet>(m_currentPacket);
+                                }
+                        }
+                }
+                else {
+                        m_state = WaitingForNextPacket;
+                        if(m_currentPacket.header.type != PacketType::Ack && m_currentPacket.header.type != PacketType::Nack) {
+                                sendAck();
+                        }
+                        return Container::Result<Packet>(m_currentPacket);
+                }
 
-        uint8_t header_crc = calc_crc8((uint8_t *)&header, sizeof(packetHeader_t));
-        m_rf->write((uint8_t *)&PacketMark,sizeof(PacketMark));
-        m_rf->write((uint8_t *)&header, sizeof(packetHeader_t));
-        m_rf->write((uint8_t *)&header_crc, sizeof(header_crc));
-}
+                return Container::Result<Packet>();
+        }
 
-void Communication::send(uint8_t packet_type) {
-        
-//        packetHeader_t header;
-//        
-//        header.start_mark = PacketMark;
-//        header.sequencer = m_packetIndex++;
-//        header.data_len = 0;
-//        header.type = packet_type;
-//        header.data_crc = 0;
-//
-//        m_rf->write((uint8_t *)&header, sizeof(packetHeader_t));
+        bool Communication::checkHeaderCrc()
+        {
+                Crc crc = m_rfModule->read();
+
+                if(crc != Packet::CalculateCRC8(m_currentPacket.header)) {
+                        Serial.print("HEADER CRC ERROR -- RX_CRC =");
+                        Serial.print(crc);
+                        Serial.print("      CRC = ");
+                        Serial.println(Packet::CalculateCRC8(m_currentPacket.contents.dataPacket));
+                        sendNack();
+                        m_state = WaitingForNextPacket;
+
+                        return false;
+                }
+
+                return true;
+        }
+
+        bool Communication::checkDataCrc()
+        {
+                Crc crc = m_rfModule->read();
+
+                if(crc != Packet::CalculateCRC8(m_currentPacket.contents.dataPacket)) {
+                        Serial.print("DATA CRC ERROR -- RX_CRC =");
+                        Serial.print(crc);
+                        Serial.print("   CRC = ");
+                        Serial.println(Packet::CalculateCRC8(m_currentPacket.contents.dataPacket));
+
+
+                        sendNack();
+                        m_state = WaitingForNextPacket;
+
+                        return false;
+                }
+
+                return true;
+        }
+
+        void Communication::sendHeader(PacketHeader header)
+        {
+
+                m_rfModule->write((uint8_t*)&PacketMark, 2);
+                writeStruct(header);
+                m_rfModule->write(Packet::CalculateCRC8(header));
+        }
+
+        void Communication::sendContents(PacketContents content, uint32_t size)
+        {
+//                writeStruct(content);
+//                Serial.print("Size of content = ");
+//                Serial.println(sizeof(content));
+                m_rfModule->write((uint8_t*)&content, size);
+                m_rfModule->write(Packet::CalculateCRC8(content));
+        }
+
+        void Communication::send(Packet packet)
+        {
+                Serial.print("-> packet type [");
+                Serial.print(packet.header.type);
+                Serial.println("]");
+                sendHeader(packet.header);
+                sendContents(packet.contents, Packet::SizeForType(packet.header.type));
+        }
+
+        void Communication::send(PacketType::Enum type)
+        {
+                Serial.print("-> packet type [");
+                Serial.print(type);
+                Serial.println("]");
+                PacketHeader header = {
+                                .id = m_transmitID++,
+                                .type = type
+                };
+                sendHeader(header);
+        }
+
+        void Communication::sendAck()
+        {
+                Serial.print("-> packet ACK[");
+                Serial.print(PacketType::Ack);
+                Serial.println("]");
+                PacketHeader ack = {
+                                .id = m_currentPacket.header.id,
+                                .type = PacketType::Ack
+                };
+                sendHeader(ack);
+        }
+
+        void Communication::sendNack()
+        {
+                Serial.print("-> packet NACK[");
+                Serial.print(PacketType::Nack);
+                Serial.println("]");
+                PacketHeader nack = {
+                                .id = m_currentPacket.header.id,
+                                .type = PacketType::Nack
+                };
+                sendHeader(nack);
+        }
+
+
+        uint16_t Communication::readWord()
+        {
+                uint8_t buff[2];
+                
+                for(uint8_t n = 0; n < 2; n++) {
+                        buff[n] = m_rfModule->read();
+                }
+                
+                return (uint16_t)(buff[1]<<8 | buff[0]);
+        }
+
+
+        void Communication::sendControlData()
+        {
+                Packet control;
+
+                control.header.id = m_transmitID++;
+                control.header.type = PacketType::ManualControl;
+
+                
+                control.contents.dataPacket.joystickData = hmi.m_joystick->readAxeControlData();
+                send(control);
+        }
+
+       
+        void Communication::sendStatus()
+        {
+                Packet status;
+
+                status.header.id = m_transmitID++;
+                status.header.type = PacketType::Status;
+
+                //status.contents.statusPacket.batteryChargeLevel = g_batteryChargeLevel;
+                status.contents.statusPacket.uptime = 0;
+
+                send(status);
+
+        }
 }

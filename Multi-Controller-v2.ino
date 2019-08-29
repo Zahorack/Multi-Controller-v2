@@ -62,7 +62,8 @@ SoftwareSerial          rf(RF_RX, RF_TX);
 U8GLIB_SSD1309_128X64   lcd(DISPLAY_SCK, DISPLAY_MOSI, DISPLAY_CS, DISPLAY_DC); 
 
 Hmi hmi(&lcd, &leftButton, &rightButton, &topButton, &leftSwitch, &rightSwitch, &joystick, &pot, &encoder);
-Communication com(&rf);
+
+Control::Communication com(&rf);
 
 
 enum modes : uint8_t {
@@ -137,13 +138,18 @@ void loop()
         }
         else if(menu_index == Menus::Manual && manualControlMenu.select()) {
                  switch(manualControlMenu.getChoice()) {
-                        case 0: com.openLeftFeeder(); Serial.println("OpenLeft Feeder"); break;
-                        case 1: com.openRightFeeder(); Serial.println("OpenRight Feeder"); break;
+                        case 0: com.send(Control::PacketType::OpenLeftFeeder); break;
+                        case 1: com.send(Control::PacketType::OpenRightFeeder); break;
                         case 3: menu_index = Menus::Main; mainMenu.begin(); break;
 
                         default: break;
                  }
         }
+
+//        if(rf.available()) {
+//               Serial.println(rf.read());
+//              // rf.read();
+//        }
 
         
 //Serial.print(rightButton.read());
