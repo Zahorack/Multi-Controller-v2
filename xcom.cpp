@@ -116,11 +116,11 @@ namespace Control
         {
                 Crc crc = m_rfModule->read();
 
-                if(crc != Packet::CalculateCRC8(m_currentPacket.contents.dataPacket)) {
+                if(crc != Packet::CalculateCRC8((uint8_t*)&m_currentPacket.contents,Packet::SizeForType(m_currentPacket.header.type))) {
                         Serial.print("DATA CRC ERROR -- RX_CRC =");
                         Serial.print(crc);
                         Serial.print("   CRC = ");
-                        Serial.println(Packet::CalculateCRC8(m_currentPacket.contents.dataPacket));
+                        Serial.println(Packet::CalculateCRC8((uint8_t*)&m_currentPacket.contents,Packet::SizeForType(m_currentPacket.header.type)));
 
 
                         sendNack();
@@ -146,7 +146,9 @@ namespace Control
 //                Serial.print("Size of content = ");
 //                Serial.println(sizeof(content));
                 m_rfModule->write((uint8_t*)&content, size);
-                m_rfModule->write(Packet::CalculateCRC8(content));
+                m_rfModule->write(Packet::CalculateCRC8((uint8_t*)&content, size));
+//                Serial.print("RX_CRC = ");
+//                Serial.println(Packet::CalculateCRC8((uint8_t*)&content, size));
         }
 
         void Communication::send(Packet packet)
@@ -216,6 +218,9 @@ namespace Control
 
                 
                 control.contents.dataPacket.joystickData = hmi.m_joystick->readAxeControlData();
+//                Serial.print(control.contents.dataPacket.joystickData.x);
+//                Serial.print("  ");
+//                Serial.println(control.contents.dataPacket.joystickData.y);
                 send(control);
         }
 

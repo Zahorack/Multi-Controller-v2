@@ -22,6 +22,7 @@
 #include "xhmi.h"
 #include "extern.h"
 #include "xcom.h"
+#include "xpacket.h"
 
 
 /*GPIO interpretation*/
@@ -122,9 +123,12 @@ void loop()
 	wdt_reset();
         updateBattery();
 
-       // receive();
+        Container::Result<Control::Packet> communicationResult = com.update();
 
-        com.update();
+        if(communicationResult.isValid && communicationResult.value.header.type == Control::PacketType::Status) {
+                Serial.print("Status packet| batery: ");
+                Serial.println(communicationResult.value.contents.statusPacket.batteryChargeLevel);
+        }
 
 
         
@@ -145,12 +149,6 @@ void loop()
                         default: break;
                  }
         }
-
-//        if(rf.available()) {
-//               Serial.println(rf.read());
-//              // rf.read();
-//        }
-
         
 //Serial.print(rightButton.read());
 //Serial.print("  ");
@@ -173,41 +171,3 @@ void loop()
 //Serial.print(encoder.m_button.read());
 //Serial.println(" ");
 }
-
-/*--------------------Functions declaration--------------------------*/
-//
-//static uint8_t receive()
-//{
-//        uint16_t mark;
-//        packetHeader_t header;
-//        uint8_t *data;
-//        
-//        if(rf.available()) {
-//                rf.readBytes((uint8_t*)&mark, 2);
-//                
-//                if(mark = com.getPacketMark()) {
-//                        Serial.println("Mark OK");
-//                        rf.readBytes((uint8_t*)&header), sizeof(packetHeader_t));
-//                        
-//                        if(header.data_len > 0) {
-//                                data = malloc(header.data_len * sizeof(uint8_t));
-//                                if(data == NULL) Trace("Error allocation");
-//                                rf.readBytes((uint8_t*)data, header.data_len);
-//                                
-//                                uint8_t rx_crc = com.calc_crc8((uint8_t *)data, header.data_len);
-//                                
-//                                if(rx_crc == header.data_crc)
-//                                switch(header.type) {
-//                                
-//                                default : Trace("Invalid packet type");
-//                                }
-//                        }
-//                        else {
-//                                switch(header.type) {
-//                                
-//                                default : Trace("Invalid packet type");
-//                                }
-//                        } //PACKET WITHOUT DATA
-//                } //PACKET MARK NOT FOUND
-//        } //NOTHING TO READ
-//}
