@@ -16,6 +16,7 @@ extern "C" {
         
 extern const uint8_t BATTERY_PIN;
 extern uint8_t getBatteryLevel();
+extern volatile uint8_t g_boatBatteryLevel;
 extern void updateBattery();
 
 extern int clamp(int val, int min, int max);

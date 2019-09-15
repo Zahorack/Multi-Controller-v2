@@ -13,6 +13,13 @@ namespace Control
 {
         Container::Result<Packet> Communication::update()
         {
+                Container::Result<Control::Packet> attempt;
+
+                if((attempt = m_handshaking.update()).isValid) {
+                        Serial.println("Handshaking send attempt\n\r");
+                        send(attempt.value);
+                }
+                
                 static uint32_t last_control_time = 0;
                 if(millis() > (last_control_time + 200)) {
                         sendControlData();
@@ -87,6 +94,9 @@ namespace Control
                         m_state = WaitingForNextPacket;
                         if(m_currentPacket.header.type != PacketType::Ack && m_currentPacket.header.type != PacketType::Nack) {
                                 sendAck();
+                        }
+                        else if (m_currentPacket.header.type == Control::PacketType::Ack) {
+                                m_handshaking.check(m_currentPacket);
                         }
                         return Container::Result<Packet>(m_currentPacket);
                 }
@@ -165,11 +175,13 @@ namespace Control
                 Serial.print("-> packet type [");
                 Serial.print(type);
                 Serial.println("]");
-                PacketHeader header = {
+                Packet packet;
+                packet.header = {
                                 .id = m_transmitID++,
                                 .type = type
                 };
-                sendHeader(header);
+                m_handshaking.add(packet);
+                send(packet);
         }
 
         void Communication::sendAck()
@@ -218,13 +230,27 @@ namespace Control
 
                 
                 control.contents.dataPacket.joystickData = hmi.m_joystick->readAxeControlData();
-//                Serial.print(control.contents.dataPacket.joystickData.x);
-//                Serial.print("  ");
-//                Serial.println(control.contents.dataPacket.joystickData.y);
+                //Serial.print(control.contents.dataPacket.joystickData.x);
+                //Serial.print("  ");
+                //Serial.println(control.contents.dataPacket.joystickData.y);
                 send(control);
         }
 
-       
+        void Communication::sendCalibrationData(ManualCalibrationPacket &data)
+        {
+                Packet calibration;
+                
+                calibration.header.id = m_transmitID++;
+                calibration.header.type = PacketType::ManualCalibration;
+                
+                calibration.contents.calibrationPacket = data;
+                //                Serial.print(control.contents.dataPacket.joystickData.x);
+                //                Serial.print("  ");
+                //                Serial.println(control.contents.dataPacket.joystickData.y);
+                m_handshaking.add(calibration);
+                send(calibration);
+        }
+
         void Communication::sendStatus()
         {
                 Packet status;

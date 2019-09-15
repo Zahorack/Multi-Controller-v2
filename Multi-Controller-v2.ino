@@ -7,12 +7,6 @@
  * use:       Lakefloor mapping
  */
 
-//TODO:
-/*
- * Implement multiprotocol
- * 
-*/
-
 //#include "U8glib.h"
 #include <TimerOne.h>
 #include <SoftwareSerial.h>
@@ -23,7 +17,6 @@
 #include "extern.h"
 #include "xcom.h"
 #include "xpacket.h"
-
 
 /*GPIO interpretation*/
 static const uint8_t LEFT_SWITCH        = 5;
@@ -85,22 +78,25 @@ static void encoder_handler() {
 String mainMenuString[5] = {"Home", "Manual control", "Sonar", "Chart", "Settings"};
 Menu mainMenu(mainMenuString, 5);
 
-String manualControlMenuString[4] = {"Left feeder", "Right Feeder", "Settings", "Back"};
-Menu manualControlMenu(manualControlMenuString, 4);
+String manualControlMenuString[5] = {"Left feeder", "Right Feeder", "Calibration", "Settings", "Back"};
+Menu manualControlMenu(manualControlMenuString, 5);
 
 
 namespace Menus {
 enum {
         Main = 0,
         Manual,
-        
-        Size
+
+
+        Size,
+        Invalid
 };
 }
 uint8_t menu_index = Menus::Main;
 
 
 HomeWindow home;
+static uint8_t calibration_request = false;
 
 void setup() {
         rf.begin(57600);
@@ -113,8 +109,7 @@ void setup() {
         attachInterrupt(digitalPinToInterrupt(encoder.getClkPin()), encoder_handler, CHANGE);
         pinMode(LEFT_BUTTON, INPUT_PULLUP);
        
-
-		wdt_enable(WDTO_2S);
+	wdt_enable(WDTO_2S);
 
 }
 /*--------------------------Main loop-------------------------------*/
@@ -126,11 +121,10 @@ void loop()
         Container::Result<Control::Packet> communicationResult = com.update();
 
         if(communicationResult.isValid && communicationResult.value.header.type == Control::PacketType::Status) {
+                g_boatBatteryLevel = communicationResult.value.contents.statusPacket.batteryChargeLevel;
                 Serial.print("Status packet| batery: ");
-                Serial.println(communicationResult.value.contents.statusPacket.batteryChargeLevel);
+                Serial.println(g_boatBatteryLevel);
         }
-
-
         
         if(menu_index == Menus::Main && mainMenu.select()) {
                switch(mainMenu.getChoice()) {
@@ -144,12 +138,70 @@ void loop()
                  switch(manualControlMenu.getChoice()) {
                         case 0: com.send(Control::PacketType::OpenLeftFeeder); break;
                         case 1: com.send(Control::PacketType::OpenRightFeeder); break;
-                        case 3: menu_index = Menus::Main; mainMenu.begin(); break;
+                        case 2: calibration_request = true; menu_index = Menus::Invalid; break;
+                        case 4: menu_index = Menus::Main; mainMenu.begin(); break;
 
                         default: break;
                  }
         }
+
+        manualCalibration(); 
+}
+
+
+static void manualCalibration() {
+
+        static uint8_t first_condition = true;
+        static uint32_t last_direction_correction = 0;
+        static uint32_t enter_time = 0xFFFF;
+
+        if(calibration_request){
+                if(first_condition == true) {
+                        hmi.m_encoder->reset();
+                        enter_time = millis();
         
+                        first_condition = false;
+                }
+                
+                Control::ManualCalibrationPacket calibration;
+
+                calibration.directionCalibration = last_direction_correction + hmi.m_encoder->read();;
+                calibration.maxPower = map(hmi.m_pot->read(), 0, 1024, 50, 100);
+
+                
+                hmi.m_lcd->firstPage();
+                do {
+                        hmi.m_lcd->setFont(u8g_font_6x13);
+                        hmi.m_lcd->setFontRefHeightText();
+                        hmi.m_lcd->setFontPosTop();
+
+                        char directionCorection[16];
+                        sprintf(directionCorection, "%02d", calibration.directionCalibration);
+                        hmi.m_lcd->drawStr( 40, 0, "Direction");
+                        hmi.m_lcd->drawStr( 60, 15, directionCorection);
+
+                        char powerCorrection[16];
+                        sprintf(powerCorrection, "%02d", calibration.maxPower);
+                        hmi.m_lcd->drawStr( 50, 30, "Power");
+                        hmi.m_lcd->drawStr( 60, 45, powerCorrection);
+
+                } while( hmi.m_lcd->nextPage() );
+
+                if(hmi.m_encoder->m_button.read() && millis() > (enter_time + 500)) {
+                        enter_time = 0xFFFF;
+                        
+                        first_condition = true;
+                        calibration_request = false;
+                        menu_index = Menus::Main;
+                        last_direction_correction = calibration.directionCalibration;
+                        
+                        com.sendCalibrationData(calibration);
+                }
+        }    
+}
+
+
+/*
 //Serial.print(rightButton.read());
 //Serial.print("  ");
 //Serial.print(leftButton.read());
@@ -170,4 +222,4 @@ void loop()
 //Serial.print(" ");
 //Serial.print(encoder.m_button.read());
 //Serial.println(" ");
-}
+*/

@@ -9,26 +9,17 @@
 #define UTIL_COMMUNICATION_H_
 
 #include "xpacket.h"
-#include "Arduino.h"
+#include "Result.h"
+//#include "Arduino.h"
 #include <SoftwareSerial.h>
-
-namespace Container
-{
-        template<typename T>
-        struct Result {
-                explicit constexpr Result() : isValid(false) {}
-                explicit constexpr Result(const T &value) : isValid(true), value(value) {}
-
-                bool isValid;
-                T value;
-        };
-}
+#include "xhandshaking.h"
 
 namespace Control
 {
 
         class Communication {
                 SoftwareSerial *m_rfModule;
+                Util::Handshaking m_handshaking;
                 uint32_t m_transmitID;
                 uint32_t m_receiveID;
 
@@ -54,6 +45,7 @@ namespace Control
                 void sendAck();
                 void sendNack();
                 void sendControlData();
+                void sendCalibrationData(ManualCalibrationPacket &data);
                 void send(PacketType::Enum type);
 
                 void send(Packet);

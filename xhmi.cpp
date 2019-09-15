@@ -123,8 +123,15 @@ void HomeWindow::show() {
         char buf[16];
         sprintf(buf, "%02d", getBatteryLevel());
         
-        hmi.m_lcd->drawBitmapP( 105, 0, 1, 8, battery_bitmap);
-        hmi.m_lcd->drawStr( 115, 0, buf);
+        hmi.m_lcd->drawBitmapP( 90, 0, 1, 8, battery_bitmap);
+        hmi.m_lcd->drawStr( 100, 0, buf);
+        hmi.m_lcd->drawStr( 114, 0, "%");
+
+        sprintf(buf, "%02d", g_boatBatteryLevel);
+        hmi.m_lcd->drawStr( 0, 0, "boat");
+        hmi.m_lcd->drawBitmapP( 25, 0, 1, 8, battery_bitmap);
+        hmi.m_lcd->drawStr( 35, 0, buf);
+        hmi.m_lcd->drawStr( 49, 0, "%");
 }
 
 void HomeWindow::update() {
