@@ -3,6 +3,7 @@
 extern "C" {
         
 volatile uint8_t g_boatBatteryLevel;
+volatile uint32_t g_singleBeamEcho;
 
 namespace Battery {
         static float KalmanFilter(float z_measured) {

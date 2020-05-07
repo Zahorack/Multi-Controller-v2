@@ -121,12 +121,16 @@ void HomeWindow::show() {
 
         
         char buf[16];
-        sprintf(buf, "%02d", getBatteryLevel());
+        uint8_t level = getBatteryLevel();
+        Serial.println(level);
+        if(level < 100) {
+                sprintf(buf, "%02d",level);
+                
+                hmi.m_lcd->drawBitmapP( 80, 0, 1, 8, battery_bitmap);
+                hmi.m_lcd->drawStr( 95, 0, buf);
+                hmi.m_lcd->drawStr( 114, 0, "%");
+        }
         
-        hmi.m_lcd->drawBitmapP( 90, 0, 1, 8, battery_bitmap);
-        hmi.m_lcd->drawStr( 100, 0, buf);
-        hmi.m_lcd->drawStr( 114, 0, "%");
-
         sprintf(buf, "%02d", g_boatBatteryLevel);
         hmi.m_lcd->drawStr( 0, 0, "boat");
         hmi.m_lcd->drawBitmapP( 25, 0, 1, 8, battery_bitmap);
@@ -135,6 +139,28 @@ void HomeWindow::show() {
 }
 
 void HomeWindow::update() {
+        hmi.m_lcd->firstPage();
+        do  {
+                show();
+        } while( hmi.m_lcd->nextPage() );
+}
+
+
+void SonarWindow::show() {
+        hmi.m_lcd->setFont(u8g_font_6x13);
+        hmi.m_lcd->setFontRefHeightText();
+        hmi.m_lcd->setFontPosTop();
+
+        
+        char buf[10];
+//        itoa(g_singleBeamEcho, buf, )
+        snprintf(buf,10,"%ld", g_singleBeamEcho);
+        hmi.m_lcd->drawStr( 0, 0, "beam");
+        hmi.m_lcd->drawStr( 35, 0, buf);
+//        hmi.m_lcd->drawStr( 49, 0, "%");
+}
+
+void SonarWindow::update() {
         hmi.m_lcd->firstPage();
         do  {
                 show();

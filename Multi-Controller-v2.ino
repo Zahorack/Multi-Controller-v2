@@ -18,6 +18,7 @@
 #include "xcom.h"
 #include "xpacket.h"
 
+
 /*GPIO interpretation*/
 static const uint8_t LEFT_SWITCH        = 5;
 static const uint8_t RIGHT_SWITCH       = 4;
@@ -33,7 +34,7 @@ static const uint8_t DISPLAY_MOSI       = 11;
 static const uint8_t DISPLAY_CS         = 10;
 static const uint8_t DISPLAY_DC         = 12;
 
-const uint8_t        BATTERY_PIN        = A0;
+static const uint8_t BATTERY_PIN        = A0;
 static const uint8_t POTENCIOMETER      = A1;
 static const uint8_t JOYSTICK_X         = A7;
 static const uint8_t JOYSTICK_Y         = A6;
@@ -93,16 +94,21 @@ enum {
 };
 }
 uint8_t menu_index = Menus::Main;
+uint8_t menu_last_choice = 255;
+uint32_t window_last_update = millis();
+
+static const uint16_t WindowRefreshTime = 200;
 
 
 HomeWindow home;
+SonarWindow sonar;
 static uint8_t calibration_request = false;
 
 void setup() {
         rf.begin(57600);
         Serial.begin(9600);
         hmi.begin();
-
+  
         
 //        Timer1.initialize(50000);
 //        Timer1.attachInterrupt(UART_IRQ);
@@ -110,6 +116,8 @@ void setup() {
         pinMode(LEFT_BUTTON, INPUT_PULLUP);
        
 	wdt_enable(WDTO_2S);
+
+  Serial.println("Hello");
 
 }
 /*--------------------------Main loop-------------------------------*/
@@ -119,21 +127,45 @@ void loop()
         updateBattery();
 
         Container::Result<Control::Packet> communicationResult = com.update();
+        
+        if(communicationResult.isValid){
+          if(communicationResult.value.header.type == Control::PacketType::Status) {
+            g_boatBatteryLevel = communicationResult.value.contents.statusPacket.batteryChargeLevel;
+            Serial.print("Status packet| batery: ");
+            Serial.println(g_boatBatteryLevel);
+          }
+          if(communicationResult.value.header.type == Control::PacketType::SingleBeamSonarData) {
+              Control::SingleBeamSonarDataPacket singleBeam =  communicationResult.value.contents.singleBeamPacket;
+              Serial.println("SingleBeamSonarDataPacket");
+              Serial.println(singleBeam.echoInterval);
+              g_singleBeamEcho = singleBeam.echoInterval;
+          }
 
-        if(communicationResult.isValid && communicationResult.value.header.type == Control::PacketType::Status) {
-                g_boatBatteryLevel = communicationResult.value.contents.statusPacket.batteryChargeLevel;
-                Serial.print("Status packet| batery: ");
-                Serial.println(g_boatBatteryLevel);
+        }
+
+        
+        if(menu_index == Menus::Main) {
+                if(mainMenu.select()){
+                        menu_last_choice = mainMenu.getChoice();
+                        switch(menu_last_choice) {
+                                case 0: home.update(); break;
+                                case 1: menu_index = Menus::Manual; manualControlMenu.begin(); break; 
+                                case 2: sonar.update(); break;
+                                
+                                default:  break;
+                        }
+                }
+                else if(millis() > (window_last_update + WindowRefreshTime)){
+                       switch(menu_last_choice) {
+                                case 0: home.update(); break; 
+                                case 2: sonar.update(); break;
+                                
+                                default: break;
+                        } 
+                        window_last_update = millis();
+                }
         }
         
-        if(menu_index == Menus::Main && mainMenu.select()) {
-               switch(mainMenu.getChoice()) {
-                        case 0: home.update(); break;
-                        case 1: menu_index = Menus::Manual; manualControlMenu.begin(); break; 
-                        
-                        default: break;
-               }
-        }
         else if(menu_index == Menus::Manual && manualControlMenu.select()) {
                  switch(manualControlMenu.getChoice()) {
                         case 0: com.send(Control::PacketType::OpenLeftFeeder); break;

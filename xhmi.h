@@ -93,4 +93,12 @@ public:
         
 };
 
+class SonarWindow : public Window {
+
+public: 
+        void show();
+        void update();
+        
+};
+
 #endif

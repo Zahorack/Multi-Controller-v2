@@ -36,7 +36,8 @@ namespace Control
                         sizeof(ManualControlPacket),
                         sizeof(OpenLeftFeederPacket),
                         sizeof(OpenRightFeederPacket),
-                        sizeof(ManualCalibrationPacket)
+                        sizeof(ManualCalibrationPacket),
+                        sizeof(SingleBeamSonarDataPacket)
         };
 
         uint8_t Packet::SizeForType(PacketType::Enum packetType)

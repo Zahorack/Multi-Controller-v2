@@ -24,7 +24,8 @@ namespace Control
                         ManualControl,
                         OpenLeftFeeder,
                         OpenRightFeeder,
-                        ManualCalibration
+                        ManualCalibration,
+                        SingleBeamSonarData
                 };
         }
 
@@ -57,6 +58,10 @@ namespace Control
                 uint8_t batteryChargeLevel;
         };
 
+        struct __attribute__((packed)) SingleBeamSonarDataPacket {
+            uint32_t echoInterval;
+        };
+
         struct __attribute__((packed)) ManualCalibrationPacket {
                 int8_t directionCalibration;
                 uint8_t maxPower;
@@ -72,6 +77,7 @@ namespace Control
                 StatusPacket statusPacket;
                 ManualControlPacket dataPacket;
                 ManualCalibrationPacket calibrationPacket;
+                SingleBeamSonarDataPacket singleBeamPacket;
         };
 
         using Crc = uint8_t;
