@@ -24,7 +24,7 @@ enum Enum : uint8_t {
 
 class Handshaking {
 
-	Container::Queue<Control::Packet, 10> m_packetQueue;
+	Container::Queue<Control::Packet, 5> m_packetQueue;
 	uint8_t m_state;
 
 public:

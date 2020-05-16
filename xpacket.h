@@ -25,7 +25,9 @@ namespace Control
                         OpenLeftFeeder,
                         OpenRightFeeder,
                         ManualCalibration,
-                        SingleBeamSonarData
+                        SingleBeamSonarData,
+                        UltrasonicData,
+                        SonarData
                 };
         }
 
@@ -59,8 +61,18 @@ namespace Control
         };
 
         struct __attribute__((packed)) SingleBeamSonarDataPacket {
-            uint32_t echoInterval;
+                uint16_t echoInterval;
         };
+
+        struct __attribute__((packed)) UltrasonicData {
+                uint16_t closestEcho;
+                uint16_t strongestEcho;
+        };
+
+        struct __attribute__((packed)) SonarData {
+                UltrasonicData ultrasonic[5];
+        };
+
 
         struct __attribute__((packed)) ManualCalibrationPacket {
                 int8_t directionCalibration;
@@ -78,6 +90,8 @@ namespace Control
                 ManualControlPacket dataPacket;
                 ManualCalibrationPacket calibrationPacket;
                 SingleBeamSonarDataPacket singleBeamPacket;
+                UltrasonicData ultrasonicDataPacket;
+                SonarData sonarDataPacket;
         };
 
         using Crc = uint8_t;

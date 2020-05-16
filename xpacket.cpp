@@ -9,7 +9,7 @@
 
 namespace Control
 {
-        static constexpr Crc CrcTable[] =
+        static const Crc CrcTable[] =
         {
                   0,  94, 188, 226,  97,  63, 221, 131, 194, 156, 126,  32, 163, 253,  31,  65,
                 157, 195,  33, 127, 252, 162,  64,  30,  95,   1, 227, 189,  62,  96, 130, 220,
@@ -29,7 +29,7 @@ namespace Control
                 116,  42, 200, 150,  21,  75, 169, 247, 182, 232,  10,  84, 215, 137, 107,  53
         };
 
-        static constexpr uint8_t PacketSizes[10] = {
+        static const uint8_t PacketSizes[10] = {
                         0 /*sizeof(NackPacket)*/,
                         0 /*sizeof(AckPacket)*/,
                         sizeof(StatusPacket),
@@ -37,7 +37,9 @@ namespace Control
                         sizeof(OpenLeftFeederPacket),
                         sizeof(OpenRightFeederPacket),
                         sizeof(ManualCalibrationPacket),
-                        sizeof(SingleBeamSonarDataPacket)
+                        sizeof(SingleBeamSonarDataPacket),
+                        sizeof(UltrasonicData),
+                        sizeof(SonarData)
         };
 
         uint8_t Packet::SizeForType(PacketType::Enum packetType)

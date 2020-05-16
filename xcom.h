@@ -14,9 +14,12 @@
 #include <SoftwareSerial.h>
 #include "xhandshaking.h"
 
+
+        
 namespace Control
 {
 
+        
         class Communication {
                 SoftwareSerial *m_rfModule;
                 Util::Handshaking m_handshaking;

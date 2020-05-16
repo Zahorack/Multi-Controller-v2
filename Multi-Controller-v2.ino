@@ -76,12 +76,13 @@ static void encoder_handler() {
         encoder.clkHandler();
 }
 
-String mainMenuString[5] = {"Home", "Manual control", "Sonar", "Chart", "Settings"};
+String mainMenuString[5] = {"Home", "Manual", "Sonar", "Chart", "Set"};
 Menu mainMenu(mainMenuString, 5);
 
-String manualControlMenuString[5] = {"Left feeder", "Right Feeder", "Calibration", "Settings", "Back"};
+String manualControlMenuString[5] = {"L feed", "R feed", "Calibration", "Set", "Back"};
 Menu manualControlMenu(manualControlMenuString, 5);
 
+Control::SonarData g_sonarData;
 
 namespace Menus {
 enum {
@@ -97,7 +98,7 @@ uint8_t menu_index = Menus::Main;
 uint8_t menu_last_choice = 255;
 uint32_t window_last_update = millis();
 
-static const uint16_t WindowRefreshTime = 200;
+static const uint16_t WindowRefreshTime = 500;
 
 
 HomeWindow home;
@@ -124,7 +125,7 @@ void setup() {
 void loop()
 {
 	wdt_reset();
-        updateBattery();
+//        updateBattery();
 
         Container::Result<Control::Packet> communicationResult = com.update();
         
@@ -139,6 +140,13 @@ void loop()
               Serial.println("SingleBeamSonarDataPacket");
               Serial.println(singleBeam.echoInterval);
               g_singleBeamEcho = singleBeam.echoInterval;
+          }
+          if(communicationResult.value.header.type == Control::PacketType::SonarData) {
+              Control::SonarData sonarData =  communicationResult.value.contents.sonarDataPacket;
+              g_sonarData = sonarData;
+              Serial.println("sonarDataPacket");
+              Serial.println(sonarData.ultrasonic[2].closestEcho);
+ 
           }
 
         }

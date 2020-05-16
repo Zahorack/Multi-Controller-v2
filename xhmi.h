@@ -4,7 +4,9 @@
 //#include <Arduino.h>
 #include "U8glib.h"
 #include "xinputs.h"
+#include "xpacket.h"
 
+extern Control::SonarData g_sonarData;
 
 namespace MenuList {
         enum Move : uint8_t {
